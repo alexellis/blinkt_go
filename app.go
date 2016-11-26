@@ -1,40 +1,9 @@
-package main
+package blinkt
 
-import (
-	. "github.com/alexellis/rpi"
-)
+import . "github.com/alexellis/rpi"
 
 const DAT int = 23
 const CLK int = 24
-
-func show(pixels [8][4]int) {
-	sof()
-	for i, _ := range pixels {
-		brightness := pixels[i][3]
-		r := pixels[i][0]
-		g := pixels[i][1]
-		b := pixels[i][2]
-
-		// 0b11100000 (224)
-		bitwise := 224
-		writeByte(bitwise | brightness)
-		writeByte(b)
-		writeByte(g)
-		writeByte(r)
-	}
-	eof()
-}
-
-func initPixels(brightness int) [8][4]int {
-	var pixels [8][4]int
-	for i, _ := range pixels {
-		pixels[i][0] = 0
-		pixels[i][1] = 0
-		pixels[i][2] = 0
-		pixels[i][3] = brightness
-	}
-	return pixels
-}
 
 func pulse(pulses int) {
 	DigitalWrite(GpioToPin(DAT), 0)
@@ -52,7 +21,8 @@ func sof() {
 	pulse(32)
 }
 
-func setup() {
+func (bl Blinkt) Setup() {
+	WiringPiSetup()
 	PinMode(GpioToPin(DAT), OUTPUT)
 	PinMode(GpioToPin(CLK), OUTPUT)
 }
@@ -67,38 +37,61 @@ func writeByte(val int) {
 	}
 }
 
-func Clear(pixels *[8][4]int) {
+func (bl Blinkt) Clear() {
 	r := 0
 	g := 0
 	b := 0
 	for i := 0; i < 8; i++ {
-		SetPixel(pixels, i, r, g, b)
+		bl.SetPixel(i, r, g, b)
 	}
 }
 
-func SetPixel(pixels *[8][4]int, p int, r int, g int, b int) {
-	pixels[p][0] = r
-	pixels[p][1] = g
-	pixels[p][2] = b
+func (bl Blinkt) Show() {
+	sof()
+	for i, _ := range bl.pixels {
+		brightness := bl.pixels[i][3]
+		r := bl.pixels[i][0]
+		g := bl.pixels[i][1]
+		b := bl.pixels[i][2]
+
+		// 0b11100000 (224)
+		bitwise := 224
+		writeByte(bitwise | brightness)
+		writeByte(b)
+		writeByte(g)
+		writeByte(r)
+	}
+	eof()
 }
 
-func main() {
-	WiringPiSetup()
-	pixels := initPixels(50)
-	setup()
+func (bl Blinkt) SetPixel(p int, r int, g int, b int) {
+	bl.pixels[p][0] = r
+	bl.pixels[p][1] = g
+	bl.pixels[p][2] = b
+}
 
-	Delay(100)
-
-	r := 255
-	g := 0
-	b := 0
-	for pixel := 0; pixel < 8; pixel++ {
-		SetPixel(&pixels, pixel, r, g, b)
-		show(pixels)
-		Delay(100)
+func initPixels(brightness int) *[8][4]int {
+	var pixels [8][4]int
+	for i, _ := range pixels {
+		pixels[i][0] = 0
+		pixels[i][1] = 0
+		pixels[i][2] = 0
+		pixels[i][3] = brightness
 	}
+	return &pixels
+}
 
-	Delay(1000)
-	Clear(&pixels)
-	show(pixels)
+func NewBlinkt(brightness int) Blinkt {
+	return Blinkt{
+		pixels: initPixels(brightness),
+	}
+}
+
+type Blinkt struct {
+	pixels *[8][4]int
+}
+
+
+func init() {
+
 }
