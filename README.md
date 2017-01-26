@@ -35,4 +35,5 @@ export GOPATH=$HOME/go
 
 ## Related:
 
+* [Blinkt Golang examples programs](https://github.com/alexellis/blinkt_go_examples)
 * [Golang rpi library](https://github.com/alexellis/rpi/)
