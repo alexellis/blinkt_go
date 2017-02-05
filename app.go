@@ -41,9 +41,7 @@ func (bl Blinkt) Clear() {
 	r := 0
 	g := 0
 	b := 0
-	for i := 0; i < 8; i++ {
-		bl.SetPixel(i, r, g, b)
-	}
+	bl.SetAll(r, g, b)
 }
 
 func (bl Blinkt) Show() {
@@ -62,6 +60,12 @@ func (bl Blinkt) Show() {
 		writeByte(r)
 	}
 	eof()
+}
+
+func (bl Blinkt) SetAll(r int, g int, b int) {
+	for i, _ := range bl.pixels {
+		bl.SetPixel(i, r, g, b)
+	}
 }
 
 func (bl Blinkt) SetPixel(p int, r int, g int, b int) {
@@ -90,7 +94,6 @@ func NewBlinkt(brightness int) Blinkt {
 type Blinkt struct {
 	pixels *[8][4]int
 }
-
 
 func init() {
 
