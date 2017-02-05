@@ -38,7 +38,9 @@ func writeByte(val int) {
 }
 
 func (bl Blinkt) Clear() {
-	r, g, b := 0, 0, 0
+	r := 0
+	g := 0
+	b := 0
 	bl.SetAll(r, g, b)
 }
 
