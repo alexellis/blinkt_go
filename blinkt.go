@@ -1,6 +1,13 @@
 package blinkt
 
-import . "github.com/alexellis/rpi"
+import (
+	"fmt"
+	"os"
+	"os/signal"
+	"time"
+
+	. "github.com/alexellis/rpi"
+)
 
 const DAT int = 23
 const CLK int = 24
@@ -38,6 +45,25 @@ func writeByte(val int) {
 		val = val << 1
 		DigitalWrite(GpioToPin(CLK), 0)
 	}
+}
+
+func (bl *Blinkt) InitStopper() {
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+	fmt.Println("Press Control + C to stop")
+
+	go func() {
+		for range signalChan {
+			bl.Clear()
+			bl.Show()
+			os.Exit(1)
+		}
+	}()
+}
+
+func (bl *Blinkt) Sleep(ms int) {
+	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
 
 func (bl *Blinkt) Clear() {
