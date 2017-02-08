@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"time"
 
-	. "github.com/alexellis/rpi"
+	"github.com/alexellis/rpi"
 )
 
 const DAT int = 23
@@ -14,10 +14,10 @@ const CLK int = 24
 
 // pulse sends a pulse through the DAT/CLK pins
 func pulse(pulses int) {
-	DigitalWrite(GpioToPin(DAT), 0)
+	rpi.DigitalWrite(rpi.GpioToPin(DAT), 0)
 	for i := 0; i < pulses; i++ {
-		DigitalWrite(GpioToPin(CLK), 1)
-		DigitalWrite(GpioToPin(CLK), 0)
+		rpi.DigitalWrite(rpi.GpioToPin(CLK), 1)
+		rpi.DigitalWrite(rpi.GpioToPin(CLK), 0)
 	}
 }
 
@@ -32,37 +32,42 @@ func sof() {
 }
 
 func (bl *Blinkt) Setup() {
-	WiringPiSetup()
-	PinMode(GpioToPin(DAT), OUTPUT)
-	PinMode(GpioToPin(CLK), OUTPUT)
+	rpi.WiringPiSetup()
+	rpi.PinMode(rpi.GpioToPin(DAT), rpi.OUTPUT)
+	rpi.PinMode(rpi.GpioToPin(CLK), rpi.OUTPUT)
 }
 
 func writeByte(val int) {
 	for i := 0; i < 8; i++ {
 		// 0b10000000 = 128
-		DigitalWrite(GpioToPin(DAT), val&128)
-		DigitalWrite(GpioToPin(CLK), 1)
+		rpi.DigitalWrite(rpi.GpioToPin(DAT), val&128)
+		rpi.DigitalWrite(rpi.GpioToPin(CLK), 1)
 		val = val << 1
-		DigitalWrite(GpioToPin(CLK), 0)
+		rpi.DigitalWrite(rpi.GpioToPin(CLK), 0)
 	}
 }
 
-func (bl *Blinkt) InitStopper() {
+// SetClearOnExit equivalent of set_clear_on_exit (name from Python library)
+func (bl *Blinkt) SetClearOnExit(scoe bool) {
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	fmt.Println("Press Control + C to stop")
+	if scoe {
 
-	go func() {
-		for range signalChan {
-			bl.Clear()
-			bl.Show()
-			os.Exit(1)
-		}
-	}()
+		signalChan := make(chan os.Signal, 1)
+		signal.Notify(signalChan, os.Interrupt)
+		fmt.Println("Press Control + C to stop")
+
+		go func() {
+			for range signalChan {
+				bl.Clear()
+				bl.Show()
+				os.Exit(1)
+			}
+		}()
+	}
 }
 
-func (bl *Blinkt) Sleep(ms int) {
+// Delay  causes the program to sleep for 'ms' Milliseconds
+func Delay(ms int) {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
 
