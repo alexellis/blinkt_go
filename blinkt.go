@@ -47,10 +47,10 @@ func writeByte(val int) {
 	}
 }
 
-// SetClearOnExit equivalent of set_clear_on_exit (name from Python library)
-func (bl *Blinkt) SetClearOnExit(scoe bool) {
+// SetClearOnExit turns all pixels off on Control + C / os.Interrupt signal.
+func (bl *Blinkt) SetClearOnExit(clearOnExit bool) {
 
-	if scoe {
+	if clearOnExit {
 
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt)
