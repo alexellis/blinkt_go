@@ -31,12 +31,6 @@ func sof() {
 	pulse(32)
 }
 
-func (bl *Blinkt) Setup() {
-	rpi.WiringPiSetup()
-	rpi.PinMode(rpi.GpioToPin(DAT), rpi.OUTPUT)
-	rpi.PinMode(rpi.GpioToPin(CLK), rpi.OUTPUT)
-}
-
 func writeByte(val int) {
 	for i := 0; i < 8; i++ {
 		// 0b10000000 = 128
@@ -66,11 +60,12 @@ func (bl *Blinkt) SetClearOnExit(clearOnExit bool) {
 	}
 }
 
-// Delay  causes the program to sleep for 'ms' Milliseconds
+// Delay maps to time.Sleep, for ms milliseconds
 func Delay(ms int) {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 }
 
+// Clear sets all the pixels to off, you still have to call Show.
 func (bl *Blinkt) Clear() {
 	r := 0
 	g := 0
@@ -78,6 +73,7 @@ func (bl *Blinkt) Clear() {
 	bl.SetAll(r, g, b)
 }
 
+// Show updates the LEDs with the values from SetPixel/Clear.
 func (bl *Blinkt) Show() {
 	sof()
 	for i, _ := range bl.pixels {
@@ -96,12 +92,14 @@ func (bl *Blinkt) Show() {
 	eof()
 }
 
+// SetAll sets all pixels to specified r, g, b colour. Show must be called to update the LEDs.
 func (bl *Blinkt) SetAll(r int, g int, b int) {
 	for i, _ := range bl.pixels {
 		bl.SetPixel(i, r, g, b)
 	}
 }
 
+// SetPixel sets an individual pixel to specified r, g, b colour. Show must be called to update the LEDs.
 func (bl *Blinkt) SetPixel(p int, r int, g int, b int) {
 	bl.pixels[p][0] = r
 	bl.pixels[p][1] = g
@@ -119,12 +117,21 @@ func initPixels(brightness int) [8][4]int {
 	return pixels
 }
 
+// Setup initializes GPIO via WiringPi base library.
+func (bl *Blinkt) Setup() {
+	rpi.WiringPiSetup()
+	rpi.PinMode(rpi.GpioToPin(DAT), rpi.OUTPUT)
+	rpi.PinMode(rpi.GpioToPin(CLK), rpi.OUTPUT)
+}
+
+// NewBlinkt creates a Blinkt to interact with. You must call "Setup()" immediately afterwards.
 func NewBlinkt(brightness int) Blinkt {
 	return Blinkt{
 		pixels: initPixels(brightness),
 	}
 }
 
+// Blinkt use the NewBlinkt function to initialize the pixels property.
 type Blinkt struct {
 	pixels [8][4]int
 }
