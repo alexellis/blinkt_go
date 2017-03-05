@@ -2,6 +2,7 @@ package blinkt
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"time"
@@ -11,6 +12,18 @@ import (
 
 const DAT int = 23
 const CLK int = 24
+
+const redIndex int = 0
+const greenIndex int = 1
+const blueIndex int = 2
+const brightnessIndex int = 3
+
+// default raw brightness.  Not to be used user-side
+const defaultBrightnessInt int = 15
+
+//upper and lower bounds for user specified brightness
+const minBrightness float64 = 0.0
+const maxBrightness float64 = 1.0
 
 // pulse sends a pulse through the DAT/CLK pins
 func pulse(pulses int) {
@@ -39,6 +52,21 @@ func writeByte(val int) {
 		val = val << 1
 		rpi.DigitalWrite(rpi.GpioToPin(CLK), 0)
 	}
+}
+
+func convertBrightnessToInt(brightness float64) int {
+
+	if !inRangeFloat(minBrightness, brightness, maxBrightness) {
+		log.Fatalf("Supplied brightness was %#v - value should be between: %#v and %#v", brightness, minBrightness, maxBrightness)
+	}
+
+	return int(brightness * 31.0)
+
+}
+
+func inRangeFloat(minVal float64, testVal float64, maxVal float64) bool {
+
+	return (testVal >= minVal) && (testVal <= maxVal)
 }
 
 // SetClearOnExit turns all pixels off on Control + C / os.Interrupt signal.
@@ -76,11 +104,11 @@ func (bl *Blinkt) Clear() {
 // Show updates the LEDs with the values from SetPixel/Clear.
 func (bl *Blinkt) Show() {
 	sof()
-	for i, _ := range bl.pixels {
-		brightness := bl.pixels[i][3]
-		r := bl.pixels[i][0]
-		g := bl.pixels[i][1]
-		b := bl.pixels[i][2]
+	for p, _ := range bl.pixels {
+		brightness := bl.pixels[p][brightnessIndex]
+		r := bl.pixels[p][redIndex]
+		g := bl.pixels[p][greenIndex]
+		b := bl.pixels[p][blueIndex]
 
 		// 0b11100000 (224)
 		bitwise := 224
@@ -93,26 +121,53 @@ func (bl *Blinkt) Show() {
 }
 
 // SetAll sets all pixels to specified r, g, b colour. Show must be called to update the LEDs.
-func (bl *Blinkt) SetAll(r int, g int, b int) {
-	for i, _ := range bl.pixels {
-		bl.SetPixel(i, r, g, b)
+func (bl *Blinkt) SetAll(r int, g int, b int) *Blinkt {
+
+	for p, _ := range bl.pixels {
+		bl.SetPixel(p, r, g, b)
 	}
+
+	return bl
 }
 
 // SetPixel sets an individual pixel to specified r, g, b colour. Show must be called to update the LEDs.
-func (bl *Blinkt) SetPixel(p int, r int, g int, b int) {
-	bl.pixels[p][0] = r
-	bl.pixels[p][1] = g
-	bl.pixels[p][2] = b
+func (bl *Blinkt) SetPixel(p int, r int, g int, b int) *Blinkt {
+
+	bl.pixels[p][redIndex] = r
+	bl.pixels[p][greenIndex] = g
+	bl.pixels[p][blueIndex] = b
+
+	return bl
+
+}
+
+// SetBrightness sets the brightness of all pixels. Brightness supplied should be between: 0.0 to 1.0
+func (bl *Blinkt) SetBrightness(brightness float64) *Blinkt {
+
+	brightnessInt := convertBrightnessToInt(brightness)
+
+	for p, _ := range bl.pixels {
+		bl.pixels[p][brightnessIndex] = brightnessInt
+	}
+
+	return bl
+}
+
+// SetPixelBrightness sets the brightness of pixel p. Brightness supplied should be between: 0.0 to 1.0
+func (bl *Blinkt) SetPixelBrightness(p int, brightness float64) *Blinkt {
+
+	brightnessInt := convertBrightnessToInt(brightness)
+	bl.pixels[p][brightnessIndex] = brightnessInt
+	return bl
 }
 
 func initPixels(brightness int) [8][4]int {
 	var pixels [8][4]int
-	for i, _ := range pixels {
-		pixels[i][0] = 0
-		pixels[i][1] = 0
-		pixels[i][2] = 0
-		pixels[i][3] = brightness
+	for p, _ := range pixels {
+		pixels[p][redIndex] = 0
+		pixels[p][greenIndex] = 0
+		pixels[p][blueIndex] = 0
+		pixels[p][brightnessIndex] = brightness
 	}
 	return pixels
 }
@@ -125,9 +180,17 @@ func (bl *Blinkt) Setup() {
 }
 
 // NewBlinkt creates a Blinkt to interact with. You must call "Setup()" immediately afterwards.
-func NewBlinkt(brightness int) Blinkt {
+func NewBlinkt(brightness ...float64) Blinkt {
+
+	//brightness is optional so set the default
+	brightnessInt := defaultBrightnessInt
+
+	//over-ride the default if the user has supplied a brightness value
+	if len(brightness) > 0 {
+		brightnessInt = convertBrightnessToInt(brightness[0])
+	}
 	return Blinkt{
-		pixels: initPixels(brightness),
+		pixels: initPixels(brightnessInt),
 	}
 }
 
